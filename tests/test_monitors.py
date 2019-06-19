@@ -12,8 +12,9 @@ from spidermon.contrib.scrapy.monitors import (
     SPIDERMON_EXPECTED_FINISH_REASONS,
     SPIDERMON_MAX_ERRORS,
     SPIDERMON_UNWANTED_HTTP_CODES,
-    SPIDERMON_UNWANTED_HTTP_CODES_MAX_COUNT
+    SPIDERMON_UNWANTED_HTTP_CODES_MAX_COUNT,
 )
+from spidermon.python.monitors import PythonExpressionsMonitor
 from spidermon import MonitorSuite
 from spidermon.exceptions import NotConfigured
 
@@ -261,3 +262,28 @@ def test_unwanted_httpcodes_should_pass(make_data):
     data["stats"]["downloader/response_status_count/500"] = 9
     runner.run(suite, **data)
     assert runner.result.monitor_results[0].error is None
+
+
+def test_expression_monitor_should_pass(make_data):
+    # Scenario # 1
+    data = make_data({
+        'SPIDERMON_SPIDER_CLOSE_EXPRESSION_MONITORS': [
+            {
+                "tests": [
+                    {"expression": "stats['item_scraped_count'] > 30"},
+                    {"expression": "stats['finish_reason'] == 'shutdown'"}
+                ]
+            },
+        ]}
+    )
+
+    runner = data.pop("runner")
+    suite = new_suite([PythonExpressionsMonitor])
+    data["stats"]["item_scraped_count"] = 31
+    data["stats"]["finish_reason"] = 'shutdown'
+    runner.run(suite, **data)
+    assert runner.result.monitor_results[0].error is None
+
+
+def test_expression_monitor_should_fail(make_data):
+    return None
